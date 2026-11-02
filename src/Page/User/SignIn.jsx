@@ -4,43 +4,56 @@ import { Mail, Lock, Github, Chrome } from 'lucide-react';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
+import { userService } from '../../services/auth/auth.service';
+import { profileService } from '../../services/profile/profile.service';
+// import { useToast } from '../../context/ToastContext';
 
 export default function SignIn() {
     const [email, setEmail] = useState(
         () => localStorage.getItem('savedEmail') || '',
     );
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(
         !!localStorage.getItem('savedEmail'),
     );
-    const [errors, setErrors] = useState({});
-    const { signin, isLoading, clearError, authError } = useAuth();
+    const [error, setError] = useState();
+    const { setUser, setIsAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const { toast } = useToast();
+    // const { toast } = useToast();
 
     // Clear auth error when component mounts
-    useEffect(() => {
-        clearError();
-    }, [clearError]);
+    // useEffect(() => {
+    // clearError();
+    // }, [clearError]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrors({});
-        const result = await signin(email, password);
-        if (result.success == true) {
+        setError();
+        setIsLoading(true);
+        const result = await userService.signIn(email, password);
+        if ("accessToken" in result) {
+            localStorage.setItem("accessToken", result.accessToken);
+            localStorage.setItem("refreshToken", result.refreshToken);
+            const currentUser = await profileService.getUser();
+            setUser(currentUser);
+            setIsAuthenticated(true);
+
             if (rememberMe) {
                 localStorage.setItem('savedEmail', email);
             } else {
                 localStorage.removeItem('savedEmail');
             }
-            toast.success('🎉 Signed in successfully!');
+            // toast.success('🎉 Signed in successfully!');
             const from = location.state?.from?.pathname || '/';
             setTimeout(() => navigate(from), 500);
+            setIsLoading(false);
+
         } else {
-            setErrors(result.newErrors);
+            setError(result.message);
         }
+        setIsLoading(false);
     };
 
     return (
@@ -66,10 +79,10 @@ export default function SignIn() {
                     </p>
 
                     {/* Form-level error */}
-                    {(errors.form || authError) && (
+                    {(error) && (
                         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                             <p className="text-sm font-medium text-red-700">
-                                {errors.form || authError}
+                                {error}
                             </p>
                         </div>
                     )}
@@ -83,10 +96,6 @@ export default function SignIn() {
                             placeholder="Enter your email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            onFocus={() =>
-                                setErrors((prev) => ({ ...prev, email: '' }))
-                            }
-                            error={errors.email}
                             required
                         />
 
@@ -97,10 +106,6 @@ export default function SignIn() {
                             placeholder="Enter your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            onFocus={() =>
-                                setErrors((prev) => ({ ...prev, password: '' }))
-                            }
-                            error={errors.password}
                             required
                         />
 

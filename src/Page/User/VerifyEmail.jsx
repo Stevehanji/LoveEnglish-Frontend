@@ -4,6 +4,7 @@ import { Mail, CheckCircle } from 'lucide-react';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { useAuth } from '../../context/AuthContext';
+import { userService } from '../../services/auth/auth.service';
 
 export default function VerifyEmail() {
     const [code, setCode] = useState('');
@@ -11,12 +12,9 @@ export default function VerifyEmail() {
     const [errors, setErrors] = useState({});
     const [verified, setVerified] = useState(false);
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
-    const { verifyEmail } = useAuth();
+    const { emailForgetPassword } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-
-    // Get email from location state (passed from SignUp)
-    const email = location.state?.email || 'your@email.com';
 
     // Timer for code expiration
     useEffect(() => {
@@ -36,36 +34,32 @@ export default function VerifyEmail() {
         e.preventDefault();
         setIsLoading(true);
         setErrors({});
-
-        // Validation
-        const newErrors = {};
-        if (!code) newErrors.code = 'Verification code is required';
-        if (code.length !== 6) newErrors.code = 'Code must be 6 digits';
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            setIsLoading(false);
+        // Call verify email API
+        const result = await userService.verifyEmail(code);
+        setIsLoading(false);
+        if ("statusCode" in result) {
+            setErrors({ code: result.message })
             return;
         }
 
-        // Call verify email API
-        const result = await verifyEmail(email, code);
-        setIsLoading(false);
-
-        if (result.success) {
-            setVerified(true);
-            // Auto redirect after 2 seconds
-            setTimeout(() => navigate('/SignIn'), 2000);
-        } else {
-            setErrors({ code: result.message });
-        }
+        localStorage.removeItem("otpVerificationToken");
+        localStorage.setItem("resetToken", result.resetToken)
+        setVerified(true);
+        setTimeout(() => navigate('/reset-password'), 2000);
     };
 
     const handleResendCode = async () => {
         setIsLoading(true);
-        // TODO: Implement resend code logic
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setTimeLeft(300);
+        setErrors({});
+        // // TODO: Implement resend code logic
+        const result = await userService.forgotPassword(emailForgetPassword);
+
+        if ("statusCode" in result) {
+            setErrors({ code: "Có lỗi, vui lòng thử lại" })
+            return;
+        }
+        alert(result.OTP);
+        localStorage.setItem("otpVerificationToken", result.otpVerificationToken);
         setIsLoading(false);
     };
 
@@ -125,7 +119,7 @@ export default function VerifyEmail() {
                                 <p className="text-muted-foreground text-sm">
                                     We've sent a 6-digit code to <br />
                                     <span className="font-semibold text-foreground">
-                                        {email}
+                                        {emailForgetPassword}
                                     </span>
                                 </p>
                             </div>

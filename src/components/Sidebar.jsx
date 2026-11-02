@@ -13,12 +13,12 @@ const SidebarContext = createContext();
 
 export default function Sidebar({ children }) {
     const [expanded, setExpanded] = useState(true);
-    const { user, signout } = useAuth();
+    const { user, signOut } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        signout();
-        navigate('/SignIn');
+        signOut();
+        navigate('/login');
     };
 
     return (
@@ -68,7 +68,7 @@ export default function Sidebar({ children }) {
                 <div className="border-t border-border p-3 space-y-3">
                     <div className="flex items-center gap-3 px-2 py-2 select-none">
                         <img
-                            src={`https://ui-avatars.com/api/?background=2563eb&color=fff&bold=true&name=${user.username.slice(0, 2)}`}
+                            src={`https://ui-avatars.com/api/?background=2563eb&color=fff&bold=true&name=${user.avatar}`}
                             alt="User Avatar"
                             className="w-10 h-10 rounded-lg flex-shrink-0"
                         />
@@ -120,10 +120,9 @@ export function SidebarItem({ icon, text, to, alert }) {
                     relative flex items-center gap-3 py-2.5 px-3
                     rounded-lg cursor-pointer transition-all duration-200
                     font-medium text-sm
-                    ${
-                        isActive
-                            ? 'bg-primary-600 text-white shadow-md'
-                            : 'text-foreground hover:bg-secondary active:bg-slate-200'
+                    ${isActive
+                        ? 'bg-primary-600 text-white shadow-md'
+                        : 'text-foreground hover:bg-secondary active:bg-slate-200'
                     }
                 `}
                 title={text}
@@ -131,18 +130,16 @@ export function SidebarItem({ icon, text, to, alert }) {
                 <div className="flex-shrink-0 flex items-center">{icon}</div>
 
                 <span
-                    className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${
-                        expanded ? 'w-auto opacity-100' : 'w-0 opacity-0'
-                    }`}
+                    className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${expanded ? 'w-auto opacity-100' : 'w-0 opacity-0'
+                        }`}
                 >
                     {text}
                 </span>
 
                 {alert && (
                     <div
-                        className={`absolute right-2 w-2 h-2 rounded-full bg-destructive flex-shrink-0 ${
-                            expanded ? '' : 'top-2'
-                        }`}
+                        className={`absolute right-2 w-2 h-2 rounded-full bg-destructive flex-shrink-0 ${expanded ? '' : 'top-2'
+                            }`}
                     />
                 )}
 

@@ -4,11 +4,11 @@ import './index.css';
 import App from './src/App.jsx';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './src/context/AuthContext.jsx';
-import { ToastProvider } from './src/context/ToastContext.jsx';
-import ToastContainer from './src/components/ToastContainer.jsx';
+// import { ToastProvider } from './src/context/ToastContext.jsx';
+// import ToastContainer from './src/components/ToastContainer.jsx';
 import ProtectedRoute from './src/components/ProtectedRoute.jsx';
 
-// User Pages
+// // User Pages
 import SignIn from './src/Page/User/SignIn.jsx';
 import SignUp from './src/Page/User/SignUp.jsx';
 import ForgotPassword from './src/Page/User/ForgotPassword.jsx';
@@ -25,84 +25,71 @@ import CreateNewSet from './src/Page/StudySets/CreateNewSet.jsx';
 import Home from './src/Page/Home.jsx';
 import Community from './src/Page/Community.jsx';
 import AdminPanel from './src/Page/AdminPanel.jsx';
+import { ResetPassword } from './src/Page/User/ResetPassword.jsx';
 
-import TestComponent from './src/Page/TestComponent.jsx';
+// import TestComponent from './src/Page/TestComponent.jsx';
 
-// Study Page
-import { StudyProvider } from './src/context/studyContext.jsx';
+// // Study Page
+// import { StudyProvider } from './src/context/studyContext.jsx';
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
         <BrowserRouter>
             <AuthProvider>
-                <ToastProvider>
-                    <StudyProvider>
-                        <Routes>
-                            {/* Public Auth Routes */}
-                            <Route path="/SignIn" element={<SignIn />} />
-                            <Route path="/SignUp" element={<SignUp />} />
-                            <Route
-                                path="/ForgotPassword"
-                                element={<ForgotPassword />}
-                            />
-                            <Route
-                                path="/VerifyEmail"
-                                element={<VerifyEmail />}
-                            />
+                <Routes>
+                    <Route path="/login" element={<SignIn />} />
+                    <Route path="/SignUp" element={<SignUp />} />
+                    <Route
+                        path="/ForgotPassword"
+                        element={<ForgotPassword />}
+                    />
+                    <Route
+                        path="/VerifyEmail"
+                        element={<VerifyEmail />}
+                    />
+                    <Route path='/reset-password' element={<ResetPassword />}></Route>
+                    {/* <ToastProvider>
+                                <StudyProvider>
+                            
+                            <Route path='/test' element={<TestComponent />} />*/}
+                    <Route
+                        path="/"
+                        element={
+                            <ProtectedRoute>
+                                <App />
+                            </ProtectedRoute>}>
+                        <Route index element={<Home />} />
 
-                            <Route path='/test' element={<TestComponent />} />
-
-                            {/* Protected Routes */}
-                            <Route
-                                path="/"
-                                element={
-                                    <ProtectedRoute>
-                                        <App />
-                                    </ProtectedRoute>
-                                }
-                            >
-                                <Route index element={<Home />} />
-
-                                {/* Study Set Page */}
-                                <Route
-                                    path="StudySets"
-                                    element={<StudySets />}
-                                />
-
-                                <Route
-                                    path="StudySets/CreateNewSet"
-                                    element={<CreateNewSet />}
-                                />
-
-                                <Route
-                                    path="StudySets/study/:setId"
-                                    element={<StudyMode />}
-                                />
-
-                                <Route
-                                    path="StudySets/quiz/:setId"
-                                    element={<QuizPage />}
-                                />
-
-                                {/* Community */}
-                                <Route
-                                    path="Community"
-                                    element={<Community />}
-                                />
-
-                                {/* Profile */}
-                                <Route path="Profile" element={<Profile />} />
-
-                                {/* Admin Panel */}
-                                <Route
-                                    path="AdminPanel"
-                                    element={<AdminPanel />}
-                                />
-                            </Route>
-                        </Routes>
-                        <ToastContainer />
-                    </StudyProvider>
-                </ToastProvider>
+                        <Route
+                            path="StudySets"
+                            element={<StudySets />}
+                        />
+                        <Route
+                            path="StudySets/CreateNewSet"
+                            element={<CreateNewSet />}
+                        />
+                        <Route
+                            path="StudySets/study/:setId"
+                            element={<StudyMode />}
+                        />
+                        <Route
+                            path="StudySets/quiz/:setId"
+                            element={<QuizPage />}
+                        />
+                        <Route
+                            path="Community"
+                            element={<Community />}
+                        />
+                        <Route path="Profile" element={<Profile />} />
+                        <Route
+                            path="AdminPanel"
+                            element={<AdminPanel />}
+                        />
+                    </Route>
+                    {/* <ToastContainer /> */}
+                    {/* </StudyProvider> */}
+                    {/* </ToastProvider> */}
+                </Routes>
             </AuthProvider>
         </BrowserRouter>
     </StrictMode>,

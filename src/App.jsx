@@ -2,6 +2,7 @@ import { Home, BookOpen, Users, User, Shield } from 'lucide-react';
 import { Outlet } from 'react-router-dom';
 import Sidebar, { SidebarItem } from './components/Sidebar';
 import { useAuth } from './context/AuthContext';
+import { Role } from './shared/enums/role.enum';
 
 function App() {
     const navigationItems = [
@@ -37,7 +38,7 @@ function App() {
         <div className="flex w-screen h-screen bg-slate-50 overflow-hidden">
             <Sidebar>
                 {navigationItems.map((item, index) => {
-                    if (item.Name != 'Admin Panel' || user.role == 'admin') {
+                    if (item.Name != 'Admin Panel' || user.role == Role.ADMIN) {
                         return (
                             <SidebarItem
                                 key={index}

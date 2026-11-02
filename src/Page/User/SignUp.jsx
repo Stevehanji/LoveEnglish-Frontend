@@ -4,21 +4,22 @@ import { Github, Chrome } from 'lucide-react';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
+import { userService } from '../../services/auth/auth.service';
+// import { useToast } from '../../context/ToastContext';
 
 export default function SignUp() {
     const [formData, setFormData] = useState({
-        fullName: '',
+        username: '',
         email: '',
         password: '',
         confirmPassword: '',
     });
     const [agreeToTerms, setAgreeToTerms] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [error, setError] = useState();
     const [passwordStrength, setPasswordStrength] = useState('');
-    const { signup, isLoading, clearError, authError } = useAuth();
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
-    const { toast } = useToast();
+    // const { toast } = useToast();
 
     // Tính toán độ mạnh của password
     const calculatePasswordStrength = (pwd) => {
@@ -44,10 +45,6 @@ export default function SignUp() {
         }
     };
 
-    useEffect(() => {
-        clearError();
-    }, [clearError]);
-
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
@@ -61,12 +58,12 @@ export default function SignUp() {
         }
 
         // Clear error for this field when user starts typing
-        if (errors[name]) {
-            setErrors((prev) => ({
-                ...prev,
-                [name]: '',
-            }));
-        }
+        // if (error[name]) {
+        //     setErrors((prev) => ({
+        //         ...prev,
+        //         [name]: '',
+        //     }));
+        // }
     };
 
     // Get password strength color
@@ -79,20 +76,26 @@ export default function SignUp() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrors({});
+        setError();
+        setIsLoading(true);
 
         if (!agreeToTerms) {
-            setErrors({ terms: 'You must agree to the terms' });
+            setError('You must agree to the terms');
+            setIsLoading(false);
             return;
         }
 
-        const result = await signup(formData);
-        if (result.success) {
-            toast.success('🎉 Account created successfully! Redirecting...');
-            setTimeout(() => navigate('/SignIn'), 1500);
+        const result = await userService.signUp(formData);
+        if ("accessToken" in result) {
+            localStorage.setItem("accessToken", result.accessToken);
+            localStorage.setItem("refreshToken", result.refreshToken);
+            // toast.success('🎉 Account created successfully! Redirecting...');
+            setTimeout(() => navigate('/'), 1500);
         } else {
-            setErrors(result.newErrors);
+            setError(result.message);
         }
+
+        setIsLoading(false);
     };
 
     return (
@@ -118,10 +121,10 @@ export default function SignUp() {
                     </p>
 
                     {/* Form-level error */}
-                    {(errors.form || authError) && (
+                    {(error) && (
                         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                             <p className="text-sm font-medium text-red-700">
-                                {errors.form || authError}
+                                {error}
                             </p>
                         </div>
                     )}
@@ -130,13 +133,13 @@ export default function SignUp() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Full Name Input */}
                         <Input
-                            label="Full Name"
+                            label="Username"
                             type="text"
-                            name="fullName"
-                            placeholder="Enter your full name"
-                            value={formData.fullName}
+                            name="username"
+                            placeholder="Enter your username"
+                            value={formData.username}
                             onChange={handleChange}
-                            error={errors.fullName}
+                            // error={errors.fullName}
                             required
                         />
 
@@ -148,7 +151,7 @@ export default function SignUp() {
                             placeholder="Enter your email"
                             value={formData.email}
                             onChange={handleChange}
-                            error={errors.email}
+                            // error={errors.email}
                             required
                         />
 
@@ -161,7 +164,7 @@ export default function SignUp() {
                                 placeholder="Create a strong password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                error={errors.password}
+                                // error={errors.password}
                                 required
                             />
 
@@ -177,8 +180,8 @@ export default function SignUp() {
                                                         ? '33%'
                                                         : passwordStrength ===
                                                             'fair'
-                                                          ? '66%'
-                                                          : '100%',
+                                                            ? '66%'
+                                                            : '100%',
                                             }}
                                         ></div>
                                     </div>
@@ -216,7 +219,7 @@ export default function SignUp() {
                             placeholder="Confirm your password"
                             value={formData.confirmPassword}
                             onChange={handleChange}
-                            error={errors.confirmPassword}
+                            // error={errors.confirmPassword}
                             required
                         />
 
@@ -247,11 +250,11 @@ export default function SignUp() {
                                 </Link>
                             </span>
                         </label>
-                        {errors.terms && (
+                        {/* {errors.terms && (
                             <p className="text-sm text-destructive font-medium">
                                 {errors.terms}
                             </p>
-                        )}
+                        )} */}
 
                         {/* Submit Button */}
                         <Button
@@ -309,7 +312,7 @@ export default function SignUp() {
                     <p className="text-center text-muted-foreground font-medium">
                         Already have an account?{' '}
                         <Link
-                            to="/SignIn"
+                            to="/login"
                             className="text-primary-600 hover:text-primary-700 font-bold"
                         >
                             Sign In

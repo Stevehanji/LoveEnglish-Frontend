@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     Shield,
     Plus,
@@ -13,6 +13,8 @@ import {
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { useAuth } from '../context/AuthContext';
+import { Role } from "../shared/enums/role.enum"
+import { adminPanelService } from '../services/adminPanel/adminPanel.service';
 
 export default function AdminPanel() {
     const [activeTab, setActiveTab] = useState('overview');
@@ -20,68 +22,7 @@ export default function AdminPanel() {
     const { user } = useAuth();
 
     // Mock users data (local state)
-    const [users, setUsers] = useState([
-        {
-            id: 'USR001',
-            name: 'Alex Johnson',
-            avatar: '👨‍🎓',
-            email: 'alex@example.com',
-            role: 'user',
-            status: 'active',
-            joinDate: 'Jan 15, 2024',
-            warnings: 0,
-        },
-        {
-            id: 'USR002',
-            name: 'Sarah Admin',
-            avatar: '👩‍💼',
-            email: 'sarah@example.com',
-            role: 'admin',
-            status: 'active',
-            joinDate: 'Dec 1, 2023',
-            warnings: 0,
-        },
-        {
-            id: 'USR003',
-            name: 'Mike Teacher',
-            avatar: '👨‍🏫',
-            email: 'mike@example.com',
-            role: 'teacher',
-            status: 'active',
-            joinDate: 'Feb 10, 2024',
-            warnings: 0,
-        },
-        {
-            id: 'USR004',
-            name: 'Emma Wilson',
-            avatar: '👩‍🎓',
-            email: 'emma@example.com',
-            role: 'user',
-            status: 'inactive',
-            joinDate: 'Jan 5, 2024',
-            warnings: 0,
-        },
-        {
-            id: 'USR005',
-            name: 'David Brown',
-            avatar: '👨‍🎓',
-            email: 'david@example.com',
-            role: 'user',
-            status: 'active',
-            joinDate: 'Mar 1, 2024',
-            warnings: 0,
-        },
-        {
-            id: 'USR006',
-            name: 'Lisa Chen',
-            avatar: '👩‍🎓',
-            email: 'lisa@example.com',
-            role: 'teacher',
-            status: 'active',
-            joinDate: 'Jan 20, 2024',
-            warnings: 0,
-        },
-    ]);
+    const [users, setUsers] = useState([]);
 
     // Mock posts for moderation queue
     const [posts, setPosts] = useState([
@@ -129,6 +70,25 @@ export default function AdminPanel() {
 
     // Activity logs (new enhanced format). Most recent first.
     const [logs, setLogs] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await adminPanelService.getUsers();
+                setUsers(res);
+                // const res = await axios.get(`http://localhost:1111/profile?user_id=${user._id}`);
+                // const res = await axios.get(
+                //     `${URL}/profile?user_id=${user._id}`,
+                // );
+                // setProfile(res.data);
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
 
     const filteredUsers = useMemo(() => {
         const q = searchTerm.trim().toLowerCase();
@@ -218,7 +178,7 @@ export default function AdminPanel() {
     };
 
     // Role-based access control (render-block inside component)
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== Role.ADMIN) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
                 <div className="bg-white rounded-2xl shadow-md p-10 text-center max-w-md">
@@ -274,11 +234,10 @@ export default function AdminPanel() {
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`px-4 py-2 rounded-lg font-medium transition-all text-sm capitalize ${
-                                        activeTab === tab
-                                            ? 'bg-primary-600 text-white'
-                                            : 'text-muted-foreground hover:text-foreground'
-                                    }`}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-all text-sm capitalize ${activeTab === tab
+                                        ? 'bg-primary-600 text-white'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                        }`}
                                 >
                                     {tab === 'content'
                                         ? `Nội dung (${pendingCount})`
@@ -308,7 +267,7 @@ export default function AdminPanel() {
                                         Tổng người dùng
                                     </div>
                                     <div className="text-3xl font-bold">
-                                        0 {/* TODO: thay bằng dữ liệu API */}
+                                        {users.length}
                                     </div>
                                 </div>
                             </div>
@@ -453,8 +412,8 @@ export default function AdminPanel() {
                                             u.status === 'suspended'
                                                 ? 'bg-red-50'
                                                 : (u.warnings || 0) > 0
-                                                  ? 'bg-yellow-50'
-                                                  : '';
+                                                    ? 'bg-yellow-50'
+                                                    : '';
                                         return (
                                             <tr
                                                 key={u.id}
@@ -463,14 +422,14 @@ export default function AdminPanel() {
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-100">
-                                                            {u.avatar}
+                                                            {u.avatar.slice(0, 2)}
                                                         </div>
                                                         <div>
                                                             <div className="font-semibold text-foreground">
-                                                                {u.name}
+                                                                {u.username}
                                                             </div>
                                                             <div className="text-xs text-muted-foreground">
-                                                                {u.id}
+                                                                {u.username}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -488,7 +447,7 @@ export default function AdminPanel() {
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center gap-2">
                                                         {u.status ===
-                                                        'suspended' ? (
+                                                            'suspended' ? (
                                                             <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-100 text-red-800 text-xs font-medium">
                                                                 Đình chỉ
                                                             </span>
@@ -503,10 +462,10 @@ export default function AdminPanel() {
                                                     <div className="flex items-center gap-2">
                                                         {(u.warnings || 0) >
                                                             0 && (
-                                                            <span className="inline-flex items-center px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
-                                                                ⚠ {u.warnings}
-                                                            </span>
-                                                        )}
+                                                                <span className="inline-flex items-center px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
+                                                                    ⚠ {u.warnings}
+                                                                </span>
+                                                            )}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4">
@@ -525,7 +484,7 @@ export default function AdminPanel() {
                                                             className="px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-sm"
                                                         >
                                                             {u.status ===
-                                                            'suspended'
+                                                                'suspended'
                                                                 ? 'Kích hoạt'
                                                                 : 'Đình chỉ'}
                                                         </button>
@@ -644,11 +603,11 @@ export default function AdminPanel() {
                                                     {isExpanded
                                                         ? p.content
                                                         : p.content.length > 100
-                                                          ? p.content.slice(
+                                                            ? p.content.slice(
                                                                 0,
                                                                 100,
                                                             ) + '…'
-                                                          : p.content}
+                                                            : p.content}
                                                 </div>
                                             </div>
                                         );

@@ -1,158 +1,81 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import URL from '../api/UserApi';
+import { useNavigate } from 'react-router-dom';
+import { profileService } from '../services/profile/profile.service';
+import { userService } from '../services/auth/auth.service';
 
 // Auth Context
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    // const [achievementUser, setAchievementUser] = useState(null);
-    // const [learningHistorysUser, setLearningHistorysUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true); // Start true to check token on mount
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [authError, setAuthError] = useState(null);
-    const [userId, setUserId] = useState(null);
+    const navigate = useNavigate();
+
+    const [emailForgetPassword, setEmailForgetPassword] = useState("");
 
     // Check token & restore user on app load
     useEffect(() => {
         const restoreSession = async () => {
             try {
-                const token = localStorage.getItem('authToken');
-                const storedUser = localStorage.getItem('user');
+                const access_token = localStorage.getItem('accessToken');
+                const refresh_token = localStorage.getItem('refreshToken');
+                if (access_token && refresh_token) {
+                    const userData = await profileService.getUser();
 
-                // console.log(token, storedUser);
-                if (token && storedUser) {
-                    const userData = JSON.parse(storedUser);
+                    if ("statusCode" in userData) {
+                        localStorage.removeItem('accessToken');
+                        localStorage.removeItem('refreshToken');
+                        navigate("/login");
+                        return;
+                    }
                     setUser(userData);
-                    setUserId(userData._id);
+                    navigate("/");
                     setIsAuthenticated(true);
+                } else {
+                    navigate("/login");
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 console.error('Session restore error:', error);
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('user');
-            } finally {
-                setIsLoading(false);
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
             }
         };
 
         restoreSession();
     }, []);
 
-    // Sign up
-    const signup = async (formData) => {
-        const result = {
-            success: false,
-            newErrors: {},
-        };
-        setIsLoading(true);
-        try {
-            const res = await axios.post(`${URL}/auth/register`, formData);
-            result.success = true;
-            return result;
-        } catch (error) {
-            var message = error.response.data.message;
-            var At = error.response.data.At;
-            if (At == 'username') result.newErrors.fullName = message;
-            else if (At == 'email') result.newErrors.email = message;
-            else if (At == 'password') result.newErrors.password = message;
-            return result;
-        } finally {
-            setIsLoading(false);
-        }
-
-        // setAuthError(null);
-    };
-
-    // Sign in
-    // const signin = async (user) => {
-    //     setAuthError(null);
-    //     setUser(user);
-    //     setUserId(user._id);
-    //     setIsAuthenticated(true);
-
-    //     // Persist session to localStorage so refresh doesn't break auth
-    //     if (user?.token) {
-    //         localStorage.setItem('authToken', user.token);
-    //     }
-    //     localStorage.setItem('user', JSON.stringify(user));
-    //     setIsLoading(false);
-    // }
-
-    const signin = async (email, password) => {
-        const result = {
-            success: false,
-            newErrors: {},
-        };
-        setIsLoading(true);
-        try {
-            const res = await axios.get(
-                `${URL}/auth/login?email=${email}&password=${password}`,
-            );
-            setAuthError(null);
-            setUser(res.data);
-            setUserId(res.data._id);
-            setIsAuthenticated(true);
-            result.success = true;
-            return result;
-        } catch (error) {
-            var message = error.response.data.message;
-            var At = error.response.data.At;
-            if (At == 'Email') result.newErrors.email = message;
-            else if (At == 'Password') result.newErrors.password = message;
-            else {
-                result.newErrors.email = result.newErrors.password = message;
-            }
-            return result;
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Sign out
-    const signout = async () => {
-        setIsLoading(true);
+    const signOut = async () => {
+        // setIsLoading(true);
         try {
             // Cleanup localStorage session data
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
             setUser(null);
-            setUserId(null);
             setIsAuthenticated(false);
-            setAuthError(null);
-            setUserId(null);
-            // Clear localStorage
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            // Navigate to login
-            window.location.href = '/SignIn';
         } catch (error) {
             console.error('Logout error:', error);
-            // Even if API call fails, still clear local storage
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            window.location.href = '/SignIn';
         } finally {
-            setIsLoading(false);
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            window.location.href = '/login';
         }
     };
 
-    //     // Forgot password
-    //     const forgotPassword = async (email) => {
-    //         setIsLoading(true);
-    //         setAuthError(null);
-    //         try {
-    //             const result = await mockAuthApi.forgotPassword(email);
-    //             return result;
-    //         } catch (error) {
-    //             const message = error.message || 'Failed to send reset link.';
-    //             setAuthError(message);
-    //             return { success: false, message };
-    //         } finally {
-    //             setIsLoading(false);
-    //         }
-    //     };
+    // Forgot password
+    const forgotPassword = async (email) => {
+        setEmailForgetPassword(email);
+        // setIsLoading(true);
+        // setAuthError(null);
+        // try {
+        //     const result = await mockAuthApi.forgotPassword(email);
+        //     return result;
+        // } catch (error) {
+        //     const message = error.message || 'Failed to send reset link.';
+        //     setAuthError(message);
+        //     return { success: false, message };
+        // } finally {
+        //     setIsLoading(false);
+        // }
+    };
 
     //     // Reset password
     //     const resetPassword = async (token, newPassword) => {
@@ -173,38 +96,38 @@ export const AuthProvider = ({ children }) => {
     //         }
     //     };
 
-    //     // Verify email
-    //     const verifyEmail = async (token) => {
-    //         setIsLoading(true);
-    //         setAuthError(null);
-    //         try {
-    //             const result = await mockAuthApi.verifyEmail(token);
-    //             return result;
-    //         } catch (error) {
-    //             const message = error.message || 'Email verification failed.';
-    //             setAuthError(message);
-    //             return { success: false, message };
-    //         } finally {
-    //             setIsLoading(false);
-    //         }
-    //     };
-
-    // Clear error
-    const clearError = () => setAuthError(null);
+    // Verify email
+    // const verifyEmail = async (token) => {
+    //     setIsLoading(true);
+    //     setAuthError(null);
+    //     try {
+    //         const result = await mockAuthApi.verifyEmail(token);
+    //         return result;
+    //     } catch (error) {
+    //         const message = error.message || 'Email verification failed.';
+    //         setAuthError(message);
+    //         return { success: false, message };
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
 
     const value = {
-        user,
-        isLoading,
         isAuthenticated,
-        authError,
-        userId,
-        signup,
-        signin,
-        signout,
-        // forgotPassword,
-        // resetPassword,
-        // verifyEmail,
-        clearError,
+        user,
+        setUser,
+        setIsAuthenticated,
+        signOut,
+
+        emailForgetPassword,
+        setEmailForgetPassword
+        //     signup,
+        //     signin,
+        //     signout,
+        //     // forgotPassword,
+        //     // resetPassword,
+        //     // verifyEmail,
+        //     clearError,
     };
 
     return (
@@ -220,3 +143,13 @@ export const useAuth = () => {
     }
     return context;
 };
+
+
+// datepart
+
+
+
+// thể loại được mượn nhiều lần nhất
+
+
+// 

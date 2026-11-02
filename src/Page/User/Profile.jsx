@@ -16,18 +16,21 @@ import AchievementBadge from '../../components/AchievementBadge';
 import LearningStreak from '../../components/LearningStreak';
 import StatCircle from '../../components/StatCircle';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
-import URL from '../../api/UserApi';
+import { profileService } from '../../services/profile/profile.service';
 
 export default function Profile() {
-    const { user, signout } = useAuth();
+    const { user, signOut, setUser } = useAuth();
     const [profile, setProfile] = useState({
         achievementData: [],
         learningHistoryData: [],
     });
+
+    const [userData, setUserData] = useState({
+        email: user.email,
+        username: user.username,
+        avatar: user.avatar
+    })
     const [isEditing, setIsEditing] = useState(false);
-    const [editedUsername, setEditedUsername] = useState(user?.username || '');
-    const [editedAvatar, setEditedAvatar] = useState(user?.avatar || '');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [passwordData, setPasswordData] = useState({
         oldPassword: '',
@@ -39,10 +42,10 @@ export default function Profile() {
         const fetchData = async () => {
             try {
                 // const res = await axios.get(`http://localhost:1111/profile?user_id=${user._id}`);
-                const res = await axios.get(
-                    `${URL}/profile?user_id=${user._id}`,
-                );
-                setProfile(res.data);
+                // const res = await axios.get(
+                //     `${URL}/profile?user_id=${user._id}`,
+                // );
+                // setProfile(res.data);
             } catch (error) {
                 console.log(error);
             }
@@ -50,8 +53,6 @@ export default function Profile() {
 
         fetchData();
     }, []);
-    // Mock user data
-    const mockUser = user;
     // Mock achievements
     const achievements = profile.achievementData;
 
@@ -67,8 +68,13 @@ export default function Profile() {
     const learningHistory = profile.learningHistoryData;
 
     const handleEdit = () => {
-        setEditedUsername(user?.username || '');
-        setEditedAvatar(user?.avatar || '');
+        setUserData(
+            {
+                username: user?.username || '',
+                email: user?.email || '',
+                avatar: user?.avatar || ''
+            }
+        )
         setIsEditing(true);
     };
 
@@ -76,11 +82,20 @@ export default function Profile() {
         setIsEditing(false);
     };
 
-    const handleSave = () => {
-        // Update user object
-        user.username = editedUsername;
-        user.avatar = editedAvatar;
-        setIsEditing(false);
+    const handleSave = async () => {
+        const res = await profileService.changeInfoUser(userData);
+
+        if ("statusCode" in res) {
+            console.log(res.message)
+        } else {
+            setUser(res);
+            setUserData({
+                email: res.email,
+                username: res.username,
+                avatar: res.avatar
+            })
+            setIsEditing(false);
+        }
     };
 
     const handleOpenSettings = () => {
@@ -96,48 +111,13 @@ export default function Profile() {
         });
     };
 
-    const handleChangePassword = () => {
-        if (
-            !passwordData.oldPassword ||
-            !passwordData.newPassword ||
-            !passwordData.confirmPassword
-        ) {
-            alert('Vui lòng điền đầy đủ các trường');
+    const handleChangePassword = async () => {
+        const res = await profileService.changePassword(passwordData);
+        if ("statusCode" in res) {
+            alert(res.message);
             return;
         }
-
-        if (passwordData.newPassword !== passwordData.confirmPassword) {
-            alert('Mật khẩu mới không khớp');
-            return;
-        }
-
-        if (passwordData.newPassword.length < 6) {
-            alert('Mật khẩu mới phải có ít nhất 6 ký tự');
-            return;
-        }
-
-        // Call API to change password
-        axios
-            .post(`${URL}/change-password`, {
-                userId: user._id,
-                oldPassword: passwordData.oldPassword,
-                newPassword: passwordData.newPassword,
-            })
-            .then((res) => {
-                if (res.data.success) {
-                    alert('Mật khẩu đã được thay đổi thành công');
-                    handleCloseSettings();
-                } else {
-                    alert(res.data.message || 'Thay đổi mật khẩu thất bại');
-                }
-            })
-            .catch((error) => {
-                console.log(error);
-                alert(
-                    error.response?.data?.message ||
-                        'Lỗi: Mật khẩu hiện tại không đúng hoặc có lỗi server',
-                );
-            });
+        setIsSettingsOpen(false);
     };
 
     return (
@@ -158,9 +138,12 @@ export default function Profile() {
                                     <Input
                                         type="text"
                                         placeholder="Enter emoji"
-                                        value={editedAvatar}
+                                        value={userData.avatar}
                                         onChange={(e) =>
-                                            setEditedAvatar(e.target.value)
+                                            setUserData({
+                                                ...userData,
+                                                avatar: e.target.value
+                                            })
                                         }
                                         maxLength={2}
                                         containerClassName="w-20"
@@ -172,11 +155,12 @@ export default function Profile() {
                                             label="Username"
                                             type="text"
                                             placeholder="Enter your username"
-                                            value={editedUsername}
+                                            value={userData.username}
                                             onChange={(e) =>
-                                                setEditedUsername(
-                                                    e.target.value,
-                                                )
+                                                setUserData({
+                                                    ...userData,
+                                                    username: e.target.value
+                                                })
                                             }
                                         />
                                     </div>
@@ -205,10 +189,10 @@ export default function Profile() {
                         ) : (
                             // View Mode
                             <div className="flex items-start gap-6 mb-6 md:mb-0 flex-1">
-                                {/* <div className="text-6xl">{mockUser.avatar}</div> */}
+                                {/* <div className="text-6xl">{user.avatar}</div> */}
                                 <div className="text-6xl w-25 h-25">
                                     <img
-                                        src={`https://ui-avatars.com/api/?background=2563eb&color=fff&bold=true&name=${user.username.slice(0, 2)}`}
+                                        src={`https://ui-avatars.com/api/?background=2563eb&color=fff&bold=true&name=${user.avatar}`}
                                         alt="User Avatar"
                                         className="w-full h-full rounded-lg flex-shrink-0"
                                     />
@@ -216,20 +200,20 @@ export default function Profile() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <h1 className="text-3xl font-bold text-foreground">
-                                            {mockUser.username}
+                                            {user.username}
                                         </h1>
                                         <span className="bg-primary-100 text-primary-600 px-3 py-1 rounded-full text-sm font-semibold">
-                                            {mockUser.level}
+                                            {user.level}
                                         </span>
                                     </div>
                                     <p className="text-muted-foreground mb-3">
-                                        {mockUser.email}
+                                        {user.email}
                                     </p>
                                     <p className="text-sm text-muted-foreground mb-2">
-                                        {mockUser.bio}
+                                        {user.bio}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        Member since {mockUser.joinDate}
+                                        Member since {user.joinDate}
                                     </p>
                                 </div>
                             </div>
@@ -260,7 +244,7 @@ export default function Profile() {
                             <Button
                                 variant="danger"
                                 size="md"
-                                onClick={signout}
+                                onClick={signOut}
                                 className="flex items-center justify-center gap-2 flex-1 md:flex-none"
                             >
                                 <LogOut size={16} />

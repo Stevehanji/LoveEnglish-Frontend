@@ -4,52 +4,44 @@ import { ArrowLeft, Mail } from 'lucide-react';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
+import { userService } from '../../services/auth/auth.service';
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [error, setError] = useState();
     const [submitted, setSubmitted] = useState(false);
-    const { resetPassword, clearError, authError } = useAuth();
+    const {
+        forgotPassword,
+        emailForgetPassword,
+        setEmailForgetPassword
+    } = useAuth();
     const navigate = useNavigate();
-    const { toast } = useToast();
-
-    useEffect(() => {
-        clearError();
-    }, [clearError]);
+    // const { toast } = useToast();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setErrors({});
+        setError();
 
-        // Validation
-        const newErrors = {};
-        if (!email) newErrors.email = 'Email is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            newErrors.email = 'Please enter a valid email';
-        }
 
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            setIsLoading(false);
+        // // Call reset password API
+        const result = await userService.forgotPassword(email);
+        setIsLoading(false);
+
+        if ("statusCode" in result) {
+            setError(result.message);
             return;
         }
 
-        // Call reset password API
-        const result = await resetPassword(email);
-        setIsLoading(false);
-
-        if (result.success) {
-            toast.success('📧 Reset link sent! Check your email.');
-            setSubmitted(true);
-            // Auto redirect after 3 seconds
-            setTimeout(() => navigate('/SignIn'), 3000);
-        } else {
-            setErrors({ email: result.message });
-            toast.error('Failed to send reset link');
-        }
+        localStorage.setItem("otpVerificationToken", result.otpVerificationToken);
+        console.log(result.OTP);
+        setEmailForgetPassword(email);
+        setSubmitted(true);
+        setTimeout(() => navigate('/VerifyEmail'), 3000);
+        // } else {
+        //     toast.error('Failed to send reset link');
+        // }
     };
 
     return (
@@ -105,10 +97,10 @@ export default function ForgotPassword() {
                             </p>
 
                             {/* Form-level error */}
-                            {(errors.form || authError) && (
+                            {(error) && (
                                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                                     <p className="text-sm font-medium text-red-700">
-                                        {errors.form || authError}
+                                        {error}
                                     </p>
                                 </div>
                             )}
@@ -122,13 +114,13 @@ export default function ForgotPassword() {
                                     placeholder="Enter your email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    onFocus={() =>
-                                        setErrors((prev) => ({
-                                            ...prev,
-                                            email: '',
-                                        }))
-                                    }
-                                    error={errors.email}
+                                    // onFocus={() =>
+                                    //     setError((prev) => ({
+                                    //         ...prev,
+                                    //         email: '',
+                                    //     }))
+                                    // }
+                                    // error={error}
                                     required
                                 />
 
@@ -150,7 +142,7 @@ export default function ForgotPassword() {
                             {/* Back to Sign In Link */}
                             <div className="mt-6 pt-6 border-t border-border">
                                 <Link
-                                    to="/SignIn"
+                                    to="/login"
                                     className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold text-sm text-center justify-center"
                                 >
                                     <ArrowLeft size={16} />
@@ -165,7 +157,7 @@ export default function ForgotPassword() {
                 <p className="text-center text-muted-foreground text-xs mt-6">
                     Remember your password?{' '}
                     <Link
-                        to="/SignIn"
+                        to="/login"
                         className="text-primary-600 hover:underline font-bold"
                     >
                         Sign In
